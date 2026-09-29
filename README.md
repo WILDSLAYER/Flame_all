@@ -61,11 +61,23 @@ La primera compilación de Rust tarda varios minutos; las siguientes son rápida
 - La app arranca oculta, con un icono en la bandeja del sistema (junto al reloj).
 - **Ctrl+Shift+Espacio** abre o cierra la ventana. El atajo se puede cambiar en ⚙.
 - La app detecta el juego abierto, carga sus personajes y los insultos de tu idioma.
-- Eliges el personaje y haces clic en un insulto: se copia al portapapeles y la ventana se oculta. Luego lo pegas en el chat con Ctrl+V.
+- Eliges el personaje y haces clic en un insulto: se copia al portapapeles, suena una confirmación y la ventana se oculta. Luego lo pegas en el chat con Ctrl+V.
+- Con teclado: escribe el nombre del personaje y pulsa **Enter**, muévete con **↑/↓** y pulsa **Enter** para copiar.
+- 🎲 copia un insulto al azar.
 - **Esc** o hacer clic en el juego también ocultan la ventana.
+- En ⚙ puedes cambiar el atajo, quitar el sonido y activar **Iniciar con Windows**.
 - Consejo: juega en **ventana sin bordes**; en pantalla completa exclusiva el juego puede minimizarse al abrir la ventana.
 
-## 5. Añadir un juego nuevo
+## 5. GitHub Actions (automático)
+
+- **CI** (`.github/workflows/ci.yml`): en cada push a `main` comprueba que la web y la app compilan.
+- **Release** (`.github/workflows/release.yml`): crea el instalador `.exe` en GitHub, así tus amigos no necesitan instalar Rust ni Node.
+  1. En GitHub ve a **Settings > Secrets and variables > Actions** y crea los secretos `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+  2. Sube la versión en `desktop/src-tauri/tauri.conf.json`.
+  3. Ejecuta `git tag v0.1.0` y luego `git push origin v0.1.0`.
+  4. En **Releases** aparece un borrador con el instalador. Publícalo y comparte el enlace.
+
+## 6. Añadir un juego nuevo
 
 En Supabase (SQL Editor):
 

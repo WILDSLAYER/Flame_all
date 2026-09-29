@@ -78,10 +78,20 @@ h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: 
 .error { color: #ff6b6b; }
 
 .toast {
-  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
   background: var(--accent); color: #fff; padding: 7px 14px; border-radius: 999px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Navegación con teclado */
+.insult.cursor { border-color: var(--accent); background: #1c1f27; }
+.dice { font-size: 14px; }
+.hints {
+  padding: 5px 12px; font-size: 11px; color: var(--muted);
+  border-top: 1px solid var(--border); background: var(--panel); text-align: center;
+}
+.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.check input { accent-color: var(--accent); }

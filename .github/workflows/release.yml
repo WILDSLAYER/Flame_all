@@ -1,0 +1,51 @@
+# Crea el instalador de Windows (.exe) y lo publica como Release en GitHub.
+#
+# Cómo usarlo:
+#   1. En GitHub: Settings > Secrets and variables > Actions > New repository secret
+#      - VITE_SUPABASE_URL       (la URL de tu proyecto Supabase)
+#      - VITE_SUPABASE_ANON_KEY  (la clave anon public)
+#   2. Sube la versión en desktop/src-tauri/tauri.conf.json (ej. 0.2.0)
+#   3. Crea y sube un tag:
+#        git tag v0.2.0
+#        git push origin v0.2.0
+#   4. En la pestaña "Releases" aparecerá un borrador con el instalador.
+name: Release escritorio
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Instalar dependencias
+        working-directory: desktop
+        run: npm ci
+      - name: Compilar y publicar
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        with:
+          projectPath: desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: "Flame_all ${{ github.ref_name }}"
+          releaseBody: "Descarga el archivo *_x64-setup.exe e instálalo."
+          releaseDraft: true
+          prerelease: false

@@ -90,3 +90,12 @@ legend { color: var(--muted); font-size: 0.9rem; padding: 0 6px; }
   border-radius: 999px; padding: 3px 12px; cursor: pointer; font: inherit;
 }
 .like.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+/* Cabecera de página con filtros */
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.page-head h1 { margin: 0; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.rank { color: var(--muted); font-weight: 700; margin-right: 8px; }
+.confirm { display: inline-flex; gap: 8px; align-items: center; }
+.danger { color: #ff6b6b; }
+.link.muted { color: var(--muted); }

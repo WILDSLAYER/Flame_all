@@ -23,11 +23,18 @@ export function InsultList({
   insults,
   loading,
   showWeekly = false,
+  ranked = false,
+  onDelete,
 }: {
   insults: FeedInsult[];
   loading: boolean;
   showWeekly?: boolean;
+  /** Muestra la posición (#1, #2…) */
+  ranked?: boolean;
+  /** Si se pasa, muestra un botón para borrar (con confirmación) */
+  onDelete?: (id: number) => void;
 }) {
+  const [confirmId, setConfirmId] = useState<number | null>(null);
   const { session } = useApp();
   const router = useRouter();
   const [liked, setLiked] = useState<Set<number>>(new Set());
@@ -79,9 +86,12 @@ export function InsultList({
 
   return (
     <ul className="insults">
-      {insults.map((ins) => (
+      {insults.map((ins, idx) => (
         <li key={ins.id} className="card">
-          <p className="insult-text">{renderText(ins.text)}</p>
+          <p className="insult-text">
+            {ranked && <span className="rank">#{idx + 1}</span>}
+            {renderText(ins.text)}
+          </p>
           <div className="meta">
             <span className={`tag cat-${ins.category}`}>
               {CATEGORIES.find((c) => c.value === ins.category)?.label}
@@ -102,6 +112,22 @@ export function InsultList({
             >
               ♥ {counts[ins.id] ?? ins.likes_count}
             </button>
+            {onDelete &&
+              (confirmId === ins.id ? (
+                <span className="confirm">
+                  ¿Borrar?
+                  <button className="link danger" onClick={() => onDelete(ins.id)}>
+                    Sí
+                  </button>
+                  <button className="link" onClick={() => setConfirmId(null)}>
+                    No
+                  </button>
+                </span>
+              ) : (
+                <button className="link muted" onClick={() => setConfirmId(ins.id)}>
+                  Borrar
+                </button>
+              ))}
           </div>
         </li>
       ))}

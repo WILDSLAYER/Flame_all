@@ -96,6 +96,11 @@ pub fn run() {
         // Si se abre la app dos veces, la segunda solo muestra la ventana existente
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
         .plugin(tauri_plugin_clipboard_manager::init())
+        // Iniciar con Windows (se activa/desactiva desde Ajustes)
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {

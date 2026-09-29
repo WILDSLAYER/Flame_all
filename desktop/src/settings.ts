@@ -38,6 +38,8 @@ export const settings = {
   setLanguage: (v: string) => set("language", v),
   hotkey: () => get("hotkey") ?? DEFAULT_HOTKEY,
   setHotkey: (v: string) => set("hotkey", v),
+  sound: () => get("sound") !== "off",
+  setSound: (on: boolean) => set("sound", on ? "on" : "off"),
   /** Último personaje elegido en cada juego */
   lastCharacter: (gameId: string) => get(`char:${gameId}`),
   setLastCharacter: (gameId: string, name: string) => set(`char:${gameId}`, name),

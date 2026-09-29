@@ -21,7 +21,7 @@ export function Nav() {
         🔥 Flame_all
       </Link>
       <nav>
-        {links.map((l) => (
+        {[...links, ...(session ? [{ href: "/mis-insultos", label: "Mis insultos" }] : [])].map((l) => (
           <Link key={l.href} href={l.href} className={path === l.href ? "active" : ""}>
             {l.label}
           </Link>

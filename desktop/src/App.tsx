@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -15,6 +16,7 @@ import {
   SUBJECT_VAR,
 } from "./api";
 import { DEFAULT_HOTKEY, keyEventToAccelerator, LANGUAGES, prettyHotkey, settings } from "./settings";
+import { playConfirm } from "./sound";
 
 // true dentro de la app Tauri; false si se abre en un navegador normal (npm run dev)
 const isTauri = "__TAURI_INTERNALS__" in window;
@@ -44,7 +46,9 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [cursor, setCursor] = useState(0); // insulto resaltado para usar con el teclado
   const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   // --- Detección del juego ------------------------------------------------
   const detect = useCallback(async () => {
@@ -116,15 +120,6 @@ export default function App() {
       .finally(() => setLoading(false));
   }, [language, gameId, tick]);
 
-  // Esc oculta la ventana
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !showSettings) hideWindow();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showSettings]);
-
   const visibleChars = useMemo(() => {
     const q = charSearch.trim().toLowerCase();
     return q ? characters.filter((c) => c.toLowerCase().includes(q)) : characters;
@@ -134,6 +129,14 @@ export default function App() {
     () => (category === "todas" ? insults : insults.filter((i) => i.category === category)),
     [insults, category]
   );
+
+  // Vuelve al primer insulto cuando cambia la lista
+  useEffect(() => setCursor(0), [visibleInsults]);
+
+  // Mantiene visible el insulto resaltado
+  useEffect(() => {
+    listRef.current?.children[cursor]?.scrollIntoView({ block: "nearest" });
+  }, [cursor]);
 
   const pickCharacter = (name: string) => {
     setCharacter(name);
@@ -150,6 +153,7 @@ export default function App() {
     try {
       if (isTauri) await writeText(text);
       else await navigator.clipboard.writeText(text);
+      if (settings.sound()) playConfirm();
       flash("¡Copiado! Pégalo con Ctrl+V");
       setTimeout(hideWindow, 450);
     } catch {
@@ -157,10 +161,40 @@ export default function App() {
     }
   };
 
+  const copyRandom = () => {
+    if (visibleInsults.length === 0) return;
+    copyInsult(visibleInsults[Math.floor(Math.random() * visibleInsults.length)]);
+  };
+
   const flash = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 1400);
   };
+
+  // Teclado: Esc oculta · ↑/↓ mueve · Enter elige personaje (si estás buscando) o copia
+  useEffect(() => {
+    if (showSettings) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        hideWindow();
+      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const n = visibleInsults.length;
+        if (n === 0) return;
+        setCursor((c) => (e.key === "ArrowDown" ? (c + 1) % n : (c - 1 + n) % n));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (charSearch.trim() && visibleChars.length > 0) {
+          pickCharacter(visibleChars[0]);
+          setCharSearch("");
+        } else if (visibleInsults[cursor]) {
+          copyInsult(visibleInsults[cursor]);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const changeLanguage = (lang: string) => {
     setLanguage(lang);
@@ -227,9 +261,6 @@ export default function App() {
                 placeholder="Buscar personaje…"
                 value={charSearch}
                 onChange={(e) => setCharSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && visibleChars.length > 0) pickCharacter(visibleChars[0]);
-                }}
                 autoFocus
               />
             </div>
@@ -260,6 +291,9 @@ export default function App() {
                     {c === "todas" ? "Todos" : CATEGORY_LABEL[c]}
                   </button>
                 ))}
+                <button className="filter dice" onClick={copyRandom} title="Copiar uno al azar">
+                  🎲
+                </button>
               </div>
             </div>
 
@@ -269,10 +303,15 @@ export default function App() {
               <p className="muted">No hay insultos en este idioma todavía. ¡Publica el primero en la web!</p>
             )}
 
-            <ul>
-              {visibleInsults.map((ins) => (
+            <ul ref={listRef}>
+              {visibleInsults.map((ins, idx) => (
                 <li key={ins.id}>
-                  <button className="insult" onClick={() => copyInsult(ins)}>
+                  <button
+                    className={`insult ${idx === cursor ? "cursor" : ""}`}
+                    onClick={() => copyInsult(ins)}
+                    onMouseEnter={() => setCursor(idx)}
+                    tabIndex={-1}
+                  >
                     <span className="text">
                       <InsultText text={ins.text} subject={character} />
                     </span>
@@ -285,6 +324,11 @@ export default function App() {
         </>
       )}
 
+      {!showSettings && (
+        <footer className="hints">
+          ↑↓ elegir · Enter copiar · Esc ocultar
+        </footer>
+      )}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
@@ -308,6 +352,22 @@ function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [hotkey, setHotkey] = useState(settings.hotkey());
   const [capturing, setCapturing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [sound, setSound] = useState(settings.sound());
+  const [autostart, setAutostart] = useState(false);
+
+  useEffect(() => {
+    if (isTauri) autostartEnabled().then(setAutostart).catch(() => {});
+  }, []);
+
+  const toggleAutostart = async (on: boolean) => {
+    try {
+      if (on) await enableAutostart();
+      else await disableAutostart();
+      setAutostart(on);
+    } catch (err) {
+      setMsg(String(err));
+    }
+  };
 
   useEffect(() => {
     if (!capturing) return;
@@ -355,6 +415,29 @@ function SettingsPanel({ onClose }: { onClose: () => void }) {
         )}
       </div>
       {msg && <p className="muted">{msg}</p>}
+
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={sound}
+          onChange={(e) => {
+            setSound(e.target.checked);
+            settings.setSound(e.target.checked);
+            if (e.target.checked) playConfirm();
+          }}
+        />
+        Sonido al copiar
+      </label>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={autostart}
+          disabled={!isTauri}
+          onChange={(e) => toggleAutostart(e.target.checked)}
+        />
+        Iniciar con Windows
+      </label>
+
       <p className="muted small">
         Consejo: juega en modo <b>ventana sin bordes</b> para que la ventana aparezca encima del juego
         sin minimizarlo.
