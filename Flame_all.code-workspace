@@ -2,10 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"name": "Flame_all",
-			"path": "Flame_all"
 		}
 	],
 	"settings": {}

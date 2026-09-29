@@ -27,6 +27,22 @@ const CATEGORY_LABEL: Record<Category, string> = {
   ingenioso: "Ingenioso",
 };
 
+/** Mensaje de error entendible (incluye el detalle de Supabase) */
+function describeError(err: unknown): string {
+  const e = err as { message?: string; code?: string; hint?: string } | null;
+  const msg = e?.message ?? String(err);
+  if (/fetch|network|Failed to/i.test(msg)) {
+    return "Sin conexión con el servidor. Revisa tu internet y la URL de Supabase en .env.";
+  }
+  if (e?.code === "PGRST205" || e?.code === "42P01" || /does not exist|Could not find the table/i.test(msg)) {
+    return "La base de datos está vacía: ejecuta 0001_init.sql y seed.sql en el SQL Editor de Supabase.";
+  }
+  if (/api key|JWT|apikey|Unauthorized|401/i.test(msg)) {
+    return "La clave de Supabase no es válida. Revisa VITE_SUPABASE_ANON_KEY en .env.";
+  }
+  return `Error del servidor: ${msg}${e?.code ? ` (${e.code})` : ""}`;
+}
+
 async function hideWindow() {
   if (isTauri) await invoke("hide_window");
 }
@@ -65,8 +81,8 @@ export default function App() {
         setAutoDetected(false);
         setGameId((cur) => cur ?? list[0]?.id ?? null);
       }
-    } catch {
-      setError("Sin conexión con el servidor. Flame_all necesita internet.");
+    } catch (err) {
+      setError(describeError(err));
     }
   }, []);
 
@@ -104,7 +120,7 @@ export default function App() {
         const last = settings.lastCharacter(gameId);
         setCharacter(last && list.includes(last) ? last : null);
       })
-      .catch(() => setError("No se pudieron cargar los personajes."));
+      .catch((err) => setError(describeError(err)));
   }, [gameId]);
 
   // --- Insultos (siempre desde el servidor: 100% online) -------------------
@@ -116,7 +132,7 @@ export default function App() {
         setInsults(list);
         setError(null);
       })
-      .catch(() => setError("Sin conexión con el servidor. Flame_all necesita internet."))
+      .catch((err) => setError(describeError(err)))
       .finally(() => setLoading(false));
   }, [language, gameId, tick]);
 
